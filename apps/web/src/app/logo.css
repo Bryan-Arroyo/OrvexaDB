@@ -1,0 +1,23 @@
+.brand {
+  display: flex;
+  align-items: center;
+}
+
+.brand img {
+  display: block;
+  width: 5.2rem;
+  height: auto;
+  max-height: 3.1rem;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.auth-logo {
+  display: block;
+  width: min(100%, 12rem);
+  height: auto;
+  max-height: 7rem;
+  object-fit: contain;
+  object-position: center;
+  margin: 0 auto 1rem;
+}
