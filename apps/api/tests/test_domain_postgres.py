@@ -215,7 +215,9 @@ def test_http_auth_csrf_permissions_and_read_only(postgres, domain):
             assert client.post("/api/v1/inventory-movements", json={"product_id": product_id, "direction": "out", "quantity": "99", "reason": "sale"}, headers=headers).status_code == 409
             with postgres() as db:
                 assert db.scalar(select(func.count()).select_from(AuditLog).where(AuditLog.entity == "inventory_movement")) == audit_before
-            assert client.get("/api/v1/inventory-movements?sort=occurred_at&order=desc").status_code == 200
+            listed = client.get("/api/v1/inventory-movements?sort=occurred_at&order=desc")
+            assert listed.status_code == 200
+            assert all(item["product_sku"] and item["product_name"] for item in listed.json()["items"])
             assert client.get("/api/v1/dashboard/summary").status_code == 200
             with postgres() as db:
                 catalog_audits = db.scalar(select(func.count()).select_from(AuditLog).where(AuditLog.entity_id.in_([http_category_id, http_supplier_id, product_id])))

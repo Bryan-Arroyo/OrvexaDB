@@ -23,7 +23,8 @@ def list_movements(page: int = Query(1, ge=1), page_size: int = Query(25, ge=1, 
     total = db.scalar(select(func.count()).select_from(InventoryMovement).where(*condition)) or 0
     columns = {"occurred_at": InventoryMovement.occurred_at, "quantity": InventoryMovement.quantity, "direction": InventoryMovement.direction}
     ordering = desc(columns[sort]) if order == "desc" else asc(columns[sort])
-    items = db.scalars(select(InventoryMovement).where(*condition).order_by(ordering, InventoryMovement.id.desc()).offset((page - 1) * page_size).limit(page_size)).all()
+    rows = db.execute(select(InventoryMovement, Product.sku, Product.name).join(Product, Product.id == InventoryMovement.product_id).where(*condition).order_by(ordering, InventoryMovement.id.desc()).offset((page - 1) * page_size).limit(page_size)).all()
+    items = [MovementView.model_validate(movement).model_copy(update={"product_sku": sku, "product_name": name}) for movement, sku, name in rows]
     return MovementList(items=items, page=page, page_size=page_size, total=total)
 
 
@@ -44,4 +45,4 @@ def create_movement(payload: MovementCreate, db: Session = Depends(get_db), acto
     db.flush()
     audit(db, actor, "inventory_movement", "inventory_movement", "success", str(movement.id), metadata={"direction": payload.direction, "quantity": str(quantity), "reason": payload.reason})
     db.commit()
-    return movement
+    return MovementView.model_validate(movement).model_copy(update={"product_sku": product.sku, "product_name": product.name})
