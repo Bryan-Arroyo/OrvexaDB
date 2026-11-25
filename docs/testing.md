@@ -77,6 +77,22 @@ Remove-Item Env:E2E_BASE_URL,Env:E2E_ADMIN_USERNAME,Env:E2E_ADMIN_PASSWORD
 
 La suite histórica de Fase 2 tenía 20 casos. La suite final de Fase 3 ejecutó 24 casos en escritorio y móvil en 18,6 segundos sobre `http://localhost:3002`, con captura móvil sin overflow. El entorno E2E usa una base y un volumen propios. Sus datos son ficticios y se conservan mientras el proyecto siga activo para permitir revisar resultados; al terminar, `docker compose -p $e2eProject down` retira los servicios sin borrar el volumen.
 
+## Datos de demostración
+
+`apps/api/app/demo_data.py` carga datos ficticios idempotentes (categorías, proveedores, productos, movimientos, órdenes de compra y los usuarios `admin.demo` y `empleado.demo`). `tests/test_demo_data_postgres.py` lo ejecuta dos veces sobre un esquema efímero de `TEST_DATABASE_URL` y comprueba que la segunda ejecución no cambia nada.
+
+Para una demostración separada de la base principal, usa un proyecto Compose propio. Si la instalación principal ya ocupa el puerto `3000`, añade un archivo de override local que publique la web en otro puerto (por ejemplo `3002:3000`) y ajuste `ALLOWED_ORIGINS` a ese origen:
+
+```powershell
+$demoProject = 'orvexadb_portfolio_demo'
+docker compose -p $demoProject up -d --build
+docker compose -p $demoProject exec api alembic upgrade head
+docker compose -p $demoProject exec api python -m app.seed
+docker compose -p $demoProject exec api python -m app.demo_data
+```
+
+Las contraseñas de los usuarios demo solo aparecen en la salida del primer `app.demo_data`. Las capturas de `docs/screenshots/` se tomaron con Playwright sobre este proyecto aislado, en `1280x800` y `393x852`.
+
 ## Docker y persistencia
 
 Para una instalación local futura, las pruebas locales pueden requerir un `.env` con `POSTGRES_PASSWORD` y `AUTH_PEPPER` propios del entorno. En la validación de Fase 3 se usaron variables efímeras y proyectos Compose aislados; no se leyó ni modificó el `.env` principal.
